@@ -109,6 +109,17 @@ We use **Datadog Workflows** to close the loop between detection and action.
 * **Result:** The on-call engineer receives a curated Case with the exact chat logs needed to fix the prompt manually.
 
 ---
+---
+
+## 📸 Evidence & Screenshots
+
+### Incident Management in Action
+When the "Optimization Failure" rule is triggered, our Workflow automatically opens a Case.
+*(Screenshot: `DATADOG/Screenshots/Screenshot 2026-01-01 031033.PNG`)*
+
+![Datadog Case Created](DATADOG/Screenshots/Screenshot202026-01-0120031033.PNG)
+
+---
 
 ## 🛠️ Setup & Replication
 
@@ -154,5 +165,4 @@ The script runs a loop that generates specific signals:
 3. **Latency Spikes (3x):** Artificially delays responses by 25s to trigger the **🐢 Latency Monitor**.
 4. **Optimization Failure (2x):** Simulates a "Refiner" failure where the agent cannot be fixed. This will trigger the **Workflow** and create a **Case** in your Datadog account.
 
-```
 
