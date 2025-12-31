@@ -14,10 +14,13 @@
 ---
 
 
-### ☁️ Infrastructure Deployment
+## ☁️ Infrastructure Deployment
 We use a fully scripted `gcloud` setup to provision Pub/Sub, Firestore, and Cloud Run.
 For a detailed breakdown of the IAM permissions and infrastructure commands, see our [Deployment Guide](DEPLOYMENT.md).
 
+## Datadog Info
+For datadog usage and detail please check the DATADOG.md file 
+[Datadog file](DATADOG.md)
 
 
 ## 🚀 How It Works
