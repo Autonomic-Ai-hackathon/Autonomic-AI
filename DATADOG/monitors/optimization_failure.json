@@ -1,0 +1,19 @@
+{
+	"id": 247542166,
+	"name": "⛔ Optimization Failure",
+	"type": "query alert",
+	"query": "sum(last_5m):sum:autonomic.optimization.failed{*} by {agent_id,reason}.as_count() >= 1",
+	"message": "{{#is_alert}}\n### ⛔ Optimization Failure: Auto-Rollback Triggered\n\n**Agent:** {{agent_id.name}}\n**Reason:** {{reason.name}}\n\nThe autonomic system attempted to self-heal this agent but reached the maximum refinement limit. The candidate has been discarded.\n\n#### 🔍 Context\nThe Refiner tried to fix an Audit failure but the Evaluator rejected the fix twice.\n\n| Detail | Value |\n| :--- | :--- |\n| **System** | Evaluator Service |\n| **Outcome** | Gave Up / Rollback |\n\n#### 🛠️ Recommended Actions\n1. **Identify the Chat:** [Click to view Logs](https://app.datadoghq.com/logs?query=agent_id:{{agent_id.name}}%20status:error)\n2. **Fix the Root Cause:** The Agent's `operational_guidelines` may be conflicting with the Auditor's rules.\n3. **Manual Override:** Update the agent prompt manually in Firestore.\n\n\n@workflow-Auto-Remediation-Optimization-Failure\n\n{{/is_alert}}",
+	"tags": [],
+	"options": {
+		"thresholds": {
+			"critical": 1
+		},
+		"notify_audit": false,
+		"on_missing_data": "default",
+		"include_tags": true,
+		"new_group_delay": 60
+	},
+	"priority": 1,
+	"draft_status": "published"
+}

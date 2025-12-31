@@ -1,0 +1,29 @@
+{
+	"id": 247532823,
+	"name": "Latency Monitor",
+	"type": "query alert",
+	"query": "avg(last_4h):anomalies(avg:autonomic.agent.latency{*} by {agent_id}, 'agile', 2, direction='both', interval=60, alert_window='last_15m', count_default_zero='true', seasonality='daily') >= 1",
+	"message": "{{#is_alert}}\nLatency Anomaly: {{agent_id.name}}\nCurrent: {{value}}ms\n\n\n\n\n@shantanu1.edu@gmail.com \n\n\n{{/is_alert}}",
+	"tags": [],
+	"options": {
+		"thresholds": {
+			"critical": 1,
+			"critical_recovery": 0,
+			"warning": 0.5,
+			"warning_recovery": 0.25
+		},
+		"notify_audit": false,
+		"require_full_window": false,
+		"renotify_interval": 0,
+		"threshold_windows": {
+			"trigger_window": "last_15m",
+			"recovery_window": "last_15m"
+		},
+		"include_tags": true,
+		"on_missing_data": "default",
+		"new_group_delay": 60,
+		"evaluation_delay": 60
+	},
+	"priority": null,
+	"draft_status": "published"
+}

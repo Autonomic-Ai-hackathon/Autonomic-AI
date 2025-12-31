@@ -1,0 +1,70 @@
+{
+  "id": "cef312aa-c1d3-4d89-8f05-8774d7443b92",
+  "name": "Auto-Remediation: Optimization Failure",
+  "description": "",
+  "tags": [],
+  "published": true,
+  "spec": {
+    "triggers": [
+      {
+        "startStepNames": [
+          "Create_case"
+        ],
+        "monitorTrigger": {}
+      }
+    ],
+    "steps": [
+      {
+        "name": "Create_case",
+        "actionId": "com.datadoghq.dd.casem.createCase",
+        "parameters": [
+          {
+            "name": "project_id",
+            "value": "d4cee19a-70da-4519-8140-be75a516340e"
+          },
+          {
+            "name": "title",
+            "value": "Optimization Failed for an agent"
+          },
+          {
+            "name": "description",
+            "value": "{{ Source.monitor.message }}\n\nAgent ID: {{ Source.monitor.tag_value.agent_id }}\nReason: {{ Source.monitor.tag_value.reason }}"
+          },
+          {
+            "name": "priority",
+            "value": "P1"
+          },
+          {
+            "name": "type_id",
+            "value": "00000000-0000-0000-0000-000000000001"
+          },
+          {
+            "name": "status_name",
+            "value": "Open"
+          }
+        ],
+        "display": {
+          "bounds": {
+            "x": 0,
+            "y": 192
+          }
+        }
+      }
+    ],
+    "handle": "Auto-Remediation-Optimization-Failure",
+    "annotations": [
+      {
+        "id": "7acbaa06-86f2-4249-9122-e2125a3c7e37",
+        "display": {
+          "bounds": {
+            "x": -137.77360043404002,
+            "y": 464.64162812469885,
+            "height": 156,
+            "width": 312
+          }
+        },
+        "markdownTextAnnotation": {}
+      }
+    ]
+  }
+}

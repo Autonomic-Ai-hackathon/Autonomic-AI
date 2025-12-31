@@ -1,0 +1,24 @@
+{
+	"id": 247507070,
+	"name": "💸 Budget Breach Alert",
+	"type": "query alert",
+	"query": "max(last_5m):avg:autonomic.budget.breach.amount{*} by {agent_id,chat_id,input_tokens,output_tokens} >= 0.1",
+	"message": "{{#is_alert}}\n### 💸 Budget Breach Alert ($0.10 Limit)\n\n**Cost:** ${{value}}\n**Agent:** {{agent_id.name}}\n**Chat ID:** {{chat_id.name}}\n\n#### Token Context\n- **Input Tokens:** {{input_tokens.name}}\n- **Output Tokens:** {{output_tokens.name}}\n\n#### Immediate Action Required\n1. **Analyze:** Click the link below to see the user prompt.\n2. **Decide:** If input > 2000 tokens, it might be a prompt injection attack.\n3. **Remediate:** If cost > $0.50, consider disabling the agent temporarily.\n\n[View Logs for this Chat](https://app.datadoghq.com/logs?query=chat_id:{{chat_id.name}})\n\n\n\n@YOUR_MAIL@gmail.com \n\n{{/is_alert}}",
+	"tags": [
+		""
+	],
+	"options": {
+		"thresholds": {
+			"critical": 0.1,
+			"warning": 0.08
+		},
+		"notify_audit": false,
+		"on_missing_data": "show_no_data",
+		"include_tags": false,
+		"renotify_interval": 0,
+		"escalation_message": "",
+		"new_group_delay": 0
+	},
+	"priority": 2,
+	"draft_status": "published"
+}
