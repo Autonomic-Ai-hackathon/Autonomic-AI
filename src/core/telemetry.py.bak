@@ -1,0 +1,96 @@
+# Datadog Logger setup
+import logging
+from datadog import initialize, statsd
+from typing import Dict, Any, Optional
+import time
+
+class DatadogTelemetry:
+    """Datadog telemetry and logging setup."""
+    
+    def __init__(self, api_key: str, service_name: str = "autonomic-ai"):
+        self.service_name = service_name
+        
+        
+        
+        # Setup structured logging
+        self.logger = logging.getLogger(service_name)
+        self.logger.setLevel(logging.INFO)
+        
+        # Create formatter for structured logs
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        self.logger.addHandler(console_handler)
+    
+    def log_info(self, message: str, extra_fields: Optional[Dict[str, Any]] = None) -> None:
+        """Log info message with optional extra fields."""
+        if extra_fields:
+            self.logger.info(f"{message} - {extra_fields}")
+        else:
+            self.logger.info(message)
+    
+    def log_error(self, message: str, error: Optional[Exception] = None, extra_fields: Optional[Dict[str, Any]] = None) -> None:
+        """Log error message with optional exception and extra fields."""
+        error_msg = f"{message}"
+        if error:
+            error_msg += f" - Error: {str(error)}"
+        if extra_fields:
+            error_msg += f" - {extra_fields}"
+        
+        self.logger.error(error_msg)
+    
+    def increment_counter(self, metric_name: str, value: int = 1, tags: Optional[list] = None) -> None:
+        """Increment a counter metric."""
+        full_metric_name = f"{self.service_name}.{metric_name}"
+        statsd.increment(full_metric_name, value=value, tags=tags or [])
+    
+    def record_gauge(self, metric_name: str, value: float, tags: Optional[list] = None) -> None:
+        """Record a gauge metric."""
+        full_metric_name = f"{self.service_name}.{metric_name}"
+        statsd.gauge(full_metric_name, value=value, tags=tags or [])
+    
+    def record_histogram(self, metric_name: str, value: float, tags: Optional[list] = None) -> None:
+        """Record a histogram metric."""
+        full_metric_name = f"{self.service_name}.{metric_name}"
+        statsd.histogram(full_metric_name, value=value, tags=tags or [])
+    
+    def time_operation(self, operation_name: str, tags: Optional[list] = None):
+        """Context manager to time operations."""
+        return TimedOperation(self, operation_name, tags)
+
+class TimedOperation:
+    """Context manager for timing operations."""
+    
+    def __init__(self, telemetry: DatadogTelemetry, operation_name: str, tags: Optional[list] = None):
+        self.telemetry = telemetry
+        self.operation_name = operation_name
+        self.tags = tags or []
+        self.start_time = None
+    
+    def __enter__(self):
+        self.start_time = time.time()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.start_time:
+            duration = time.time() - self.start_time
+            self.telemetry.record_histogram(
+                f"{self.operation_name}.duration",
+                duration * 1000,  # Convert to milliseconds
+                self.tags
+            )
+            
+            if exc_type:
+                self.telemetry.increment_counter(
+                    f"{self.operation_name}.error",
+                    tags=self.tags + [f"error_type:{exc_type.__name__}"]
+                )
+            else:
+                self.telemetry.increment_counter(
+                    f"{self.operation_name}.success",
+                    tags=self.tags
+                )

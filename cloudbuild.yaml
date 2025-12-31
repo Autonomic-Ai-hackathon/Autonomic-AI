@@ -1,0 +1,171 @@
+# cloudbuild.yaml - Build once, deploy all services in parallel
+steps:
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Step 1: Build Docker image once
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/autonomic-repo/auto:$SHORT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/autonomic-repo/auto:latest'
+      - '.'
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Step 2: Push image to Artifact Registry
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/autonomic-repo/auto'
+    waitFor: ['build-image']
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Step 3: Deploy Gateway
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-gateway'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'autonomic-gateway'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/autonomic-repo/auto:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=SERVICE_ROLE=gateway'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID'
+      - '--set-env-vars=REGION=us-central1'  # ✅ ADDED THIS
+      - '--set-env-vars=DD_SITE=datadoghq.com'
+      - '--set-env-vars=DD_LOG_LEVEL=debug'
+      
+      - '--set-env-vars=DD_ENV=hackathon-dev'
+      - '--set-env-vars=DD_SERVICE=autonomic-gateway'
+      - '--set-env-vars=DD_VERSION=$SHORT_SHA'
+      - '--set-env-vars=DD_LOGS_ENABLED=true'
+      - '--set-env-vars=DD_LOGS_INJECTION=true'
+      - '--set-env-vars=DD_TRACE_ENABLED=true'
+      - '--set-env-vars=DD_APM_ENABLED=true'
+      - '--set-env-vars=DD_HOSTNAME=autonomic-gateway'
+      - '--set-secrets=DD_API_KEY=DD_API_KEY:latest'
+      - '--quiet'
+    waitFor: ['push-image']
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Step 4: Deploy Auditor
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-auditor'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'autonomic-auditor'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/autonomic-repo/auto:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--no-allow-unauthenticated'
+      - '--set-env-vars=SERVICE_ROLE=auditor'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID'
+      - '--set-env-vars=REGION=us-central1'  # ✅ ADDED THIS
+      - '--set-env-vars=DD_SITE=datadoghq.com'
+      - '--set-env-vars=DD_ENV=hackathon-dev'
+      - '--set-env-vars=DD_SERVICE=autonomic-auditor'
+      - '--set-env-vars=DD_VERSION=$SHORT_SHA'
+      - '--set-env-vars=DD_LOGS_ENABLED=true'
+      - '--set-env-vars=DD_LOGS_INJECTION=true'
+      - '--set-env-vars=DD_TRACE_ENABLED=true'
+      - '--set-env-vars=DD_APM_ENABLED=true'
+      - '--set-env-vars=DD_HOSTNAME=autonomic-auditor'
+      - '--min-instances=1'
+      - '--max-instances=3'
+      - '--timeout=300'
+      - '--set-secrets=DD_API_KEY=DD_API_KEY:latest'
+      - '--quiet'
+    waitFor: ['push-image']
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Step 5: Deploy Refiner
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-refiner'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'autonomic-refiner'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/autonomic-repo/auto:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--no-allow-unauthenticated'
+      - '--set-env-vars=SERVICE_ROLE=refiner'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID'
+      - '--set-env-vars=REGION=us-central1'  # ✅ ADDED THIS
+      - '--set-env-vars=DD_SITE=datadoghq.com'
+      - '--set-env-vars=DD_ENV=hackathon-dev'
+      - '--set-env-vars=DD_SERVICE=autonomic-refiner'
+      - '--set-env-vars=DD_VERSION=$SHORT_SHA'
+      - '--set-env-vars=DD_LOGS_ENABLED=true'
+      - '--set-env-vars=DD_LOGS_INJECTION=true'
+      - '--set-env-vars=DD_TRACE_ENABLED=true'
+      - '--set-env-vars=DD_APM_ENABLED=true'
+      - '--set-env-vars=DD_HOSTNAME=autonomic-refiner'
+      - '--min-instances=1'
+      - '--max-instances=3'
+      - '--timeout=300'
+      - '--set-secrets=DD_API_KEY=DD_API_KEY:latest'
+      - '--quiet'
+    waitFor: ['push-image']
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Step 6: Deploy Evaluator
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-evaluator'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'autonomic-evaluator'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/autonomic-repo/auto:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--no-allow-unauthenticated'
+      - '--set-env-vars=SERVICE_ROLE=evaluator'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID'
+      - '--set-env-vars=REGION=us-central1'  # ✅ ADDED THIS
+      - '--set-env-vars=DD_SITE=datadoghq.com'
+      - '--set-env-vars=DD_ENV=hackathon-dev'
+      - '--set-env-vars=DD_SERVICE=autonomic-evaluator'
+      - '--set-env-vars=DD_VERSION=$SHORT_SHA'
+      - '--set-env-vars=DD_LOGS_ENABLED=true'
+      - '--set-env-vars=DD_LOGS_INJECTION=true'
+      - '--set-env-vars=DD_TRACE_ENABLED=true'
+      - '--set-env-vars=DD_APM_ENABLED=true'
+      - '--set-env-vars=DD_HOSTNAME=autonomic-evaluator'
+      - '--min-instances=1'
+      - '--max-instances=3'
+      - '--timeout=300'
+      - '--set-secrets=DD_API_KEY=DD_API_KEY:latest'
+      - '--quiet'
+    waitFor: ['push-image']
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Build timeout
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+timeout: '1800s'
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Build Options
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+options:
+  machineType: 'UNSPECIFIED'
+  logging: CLOUD_LOGGING_ONLY
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Images to store in Artifact Registry
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/autonomic-repo/auto:$SHORT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/autonomic-repo/auto:latest'

@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+google-cloud-pubsub
+google-cloud-firestore
+google-cloud-aiplatform
+ddtrace
+python-dotenv
+requests
+pydantic
+datadog
