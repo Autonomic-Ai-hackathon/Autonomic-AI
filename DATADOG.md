@@ -29,25 +29,51 @@ We instrumented our Python application to emit custom metrics that track the lif
 ## 📊 The "Autonomic AI Ops Center" Dashboard
 
 We built a unified control plane to monitor the health of the swarm.
-*(Import `Dashboard.json` to view)*
+*(Import [`DATADOG/Dashboard.json`](DATADOG/Dashboard.json) to view)*
 
-### Key Widgets
+### Dashboard Metrics & Usage Detail
 
-1. **Current Active Version:** Displays the live version of the agent (e.g., `v1` -> `v2`). Colors change if a rollback occurs.
-2. **Optimization Rate:** A custom formula tracking the success rate of our self-healing code:
+The dashboard provides a "Glass Cockpit" view of the AI swarm's autonomic functions. Here is how each section is used operationally:
 
+#### **1. Live Agent State**
+* **Current Active Version:** Displays the live version of the agent (e.g., `v1` -> `v2`).
+    * *Usage:* Instant visual confirmation that a self-healing deployment succeeded. Background turns **Purple** for v2+ to indicate an evolved agent is active.
+* **Active Detection Rules:** A "Manage Status" widget filtering for our critical monitors.
+    * *Usage:* An "All Green" check for on-call engineers. Shows immediate status of Budget, Latency, and Optimization alerts.
 
-3. **Log Stream:** A live feed filtering `service:autonomic-*` to show the conversation between the Auditor and Refiner.
-4. **SLO Widget:** Tracks "Successful Interaction Rate" (Target: 95%).
+#### **2. Performance & Cost (The "Business" View)**
+* **User Facing Latency:** Tracks `autonomic.agent.latency.avg`.
+    * *Usage:* Ensures the self-healing loops aren't causing unacceptable user delays.
+* **Backend Component Latency:** Breakdowns latency by agent role (Auditor, Refiner, Evaluator).
+    * *Usage:* Identifies bottlenecks. If the "Refiner" latency spikes, the self-healing code generation is struggling.
+* **ChatBot Agent Cost ($):** Tracks `autonomic.agent.cost`.
+    * *Usage:* Financial guardrail. GenAI costs can scale linearly with tokens; this widget catches runaways early.
+
+#### **3. Auditor & Quality Control (The "Brain" View)**
+* **Pass Rate %:** Formula: `(Pass / (Pass + Fail)) * 100`.
+    * *Usage:* The primary KPI for the "Auditor" agent. A drop below 50% turns the widget **Red**, indicating the current model version is hallucinating frequently.
+* **Auditor Pass vs Fail:** A bar chart comparing verdicts over time.
+    * *Usage:* Correlates "Fail" spikes with deployment events.
+
+#### **4. Auto-Correction Loop (The "Self-Healing" View)**
+* **Optimization Rate:** Formula: `(Success / (Success + Failed)) * 100`.
+    * *Usage:* Measures the effectiveness of the "Refiner" agent. If this drops, our automated fixes are being rejected by the "Evaluator," requiring human code review.
+* **Optimization Failures by Agent:** Top list of agents causing failures.
+    * *Usage:* Rapidly identifies which specific agent ID is stuck in a failure loop.
+
+#### **5. System Logs**
+* **LOG STREAM:** A live feed filtering `service:autonomic-*`.
+    * *Usage:* Provides the raw "thought process" (logs) of the agents. Engineers can read the conversation between the Auditor and Refiner here to debug logic errors.
 
 ---
 
 ## 🚨 Detection Rules & Monitors
 
 We defined **3 Critical Detection Rules** to ensure safety and performance.
-*(Import the JSONs in the `monitors/` folder)*
+*(Import the JSONs from the `DATADOG/monitors/` folder)*
 
 ### 1. ⛔ Optimization Failure (The "Actionable" Rule)
+*(File: [`DATADOG/monitors/optimization_failure.json`](DATADOG/monitors/optimization_failure.json))*
 
 * **Context:** If the "Refiner" agent tries to fix a bug but the "Evaluator" rejects the fix twice, the system gives up to prevent infinite loops.
 * **Query:** `sum(last_5m):sum:autonomic.optimization.failed{*} >= 1`
@@ -55,6 +81,7 @@ We defined **3 Critical Detection Rules** to ensure safety and performance.
 * **Why:** This is the only time a human *must* intervene.
 
 ### 2. 💸 Budget Breach Alert
+*(File: [`DATADOG/monitors/budget_breach.json`](DATADOG/monitors/budget_breach.json))*
 
 * **Context:** GenAI costs can spiral. We monitor per-message cost.
 * **Query:** `max(last_5m):avg:autonomic.budget.breach.amount{*} >= 0.1`
@@ -62,6 +89,7 @@ We defined **3 Critical Detection Rules** to ensure safety and performance.
 * **Why:** Detects prompt injection attacks or infinite looping agents.
 
 ### 3. 🐢 Latency Anomaly (AI-Powered)
+*(File: [`DATADOG/monitors/latency_anomaly.json`](DATADOG/monitors/latency_anomaly.json))*
 
 * **Context:** Users expect speed.
 * **Query:** Uses Datadog's **Anomaly Detection** algorithm (`anomalies(..., 'agile', 2)`) to detect deviations from the baseline.
@@ -72,6 +100,7 @@ We defined **3 Critical Detection Rules** to ensure safety and performance.
 ## ⚡ Automated Remediation (Workflow)
 
 We use **Datadog Workflows** to close the loop between detection and action.
+*(File: [`DATADOG/workflow.json`](DATADOG/workflow.json))*
 
 * **Trigger:** The **⛔ Optimization Failure** monitor fires.
 * **Workflow ID:** `Auto-Remediation: Optimization Failure`
@@ -90,9 +119,9 @@ We use **Datadog Workflows** to close the loop between detection and action.
 
 ### 2. Import Configuration
 
-1. **Dashboard:** Import `Dashboard.json` into Dashboards.
-2. **Monitors:** Create new monitors using the JSON definitions provided in the `monitors` section of this folder.
-3. **Workflow:** Import `workflow.json` into Datadog Workflows.
+1.  **Dashboard:** Import [`DATADOG/Dashboard.json`](DATADOG/Dashboard.json) into Dashboards.
+2.  **Monitors:** Create new monitors using the JSON definitions provided in `DATADOG/monitors/`.
+3.  **Workflow:** Import [`DATADOG/workflow.json`](DATADOG/workflow.json) into Datadog Workflows.
 
 ### 3. Run the Traffic Generator
 
@@ -124,3 +153,6 @@ The script runs a loop that generates specific signals:
 2. **Budget Breach (3x):** Sends requests with massive token counts to trigger the **💸 Budget Breach** monitor.
 3. **Latency Spikes (3x):** Artificially delays responses by 25s to trigger the **🐢 Latency Monitor**.
 4. **Optimization Failure (2x):** Simulates a "Refiner" failure where the agent cannot be fixed. This will trigger the **Workflow** and create a **Case** in your Datadog account.
+
+```
+
