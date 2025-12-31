@@ -1,6 +1,6 @@
 
 
-```markdown
+
 # ☁️ Google Cloud Deployment Guide
 
 This guide details the exact commands used to provision the **Autonomic AI** infrastructure on Google Cloud Platform. It covers IAM permissions, Secret Manager, Pub/Sub topics, and Cloud Run deployment.
@@ -118,7 +118,7 @@ gcloud run services add-iam-policy-binding autonomic-gateway \
 
 ```
 
-```
+
 
 ---
 

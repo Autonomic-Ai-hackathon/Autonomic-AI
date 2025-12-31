@@ -1,6 +1,5 @@
 
 
-```markdown
 # Autonomic AI: Self-Healing GenAI Swarm
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -178,4 +177,3 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ```
 
-```
